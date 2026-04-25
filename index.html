@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edge Detection System</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1e1e2f, #2c3e50);
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+input {
+    margin-bottom: 20px;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    max-width: 1100px;
+    margin: auto;
+}
+
+.card {
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+}
+
+canvas {
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 10px;
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #00c6ff;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0072ff;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Edge Detection (Sobel Operator)</h1>
+
+<input type="file" id="upload">
+
+<div class="container">
+    <div class="card">
+        <h3>Original</h3>
+        <canvas id="original"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Gradient X</h3>
+        <canvas id="gx"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Gradient Y</h3>
+        <canvas id="gy"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Final Output</h3>
+        <canvas id="final"></canvas>
+    </div>
+</div>
+
+<button id="download">Download Output</button>
+
+<script>
+const upload = document.getElementById('upload');
+
+upload.onchange = e => {
+    const file = e.target.files[0];
+    const img = new Image();
+    img.onload = () => process(img);
+    img.src = URL.createObjectURL(file);
+};
+
+function process(img) {
+    const ids = ['original','gx','gy','final'];
+
+    ids.forEach(id => {
+        const c = document.getElementById(id);
+        c.width = img.width;
+        c.height = img.height;
+    });
+
+    const ctx = original.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const { data } = ctx.getImageData(0,0,img.width,img.height);
+
+    let gray = [];
+    for(let i=0;i<data.length;i+=4){
+        gray.push(0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]);
+    }
+
+    sobel(gray, img.width, img.height);
+}
+
+function sobel(gray,w,h){
+    const gxCtx = gx.getContext('2d');
+    const gyCtx = gy.getContext('2d');
+    const fCtx = final.getContext('2d');
+
+    let gxImg = gxCtx.createImageData(w,h);
+    let gyImg = gyCtx.createImageData(w,h);
+    let fImg = fCtx.createImageData(w,h);
+
+    const sx=[-1,0,1,-2,0,2,-1,0,1];
+    const sy=[-1,-2,-1,0,0,0,1,2,1];
+
+    for(let y=1;y<h-1;y++){
+        for(let x=1;x<w-1;x++){
+
+            let gxVal=0, gyVal=0, k=0;
+
+            for(let ky=-1;ky<=1;ky++){
+                for(let kx=-1;kx<=1;kx++){
+                    let p=gray[(y+ky)*w+(x+kx)];
+                    gxVal+=p*sx[k];
+                    gyVal+=p*sy[k];
+                    k++;
+                }
+            }
+
+            let mag=Math.sqrt(gxVal*gxVal+gyVal*gyVal);
+            let i=(y*w+x)*4;
+
+            gxImg.data[i]=gxImg.data[i+1]=gxImg.data[i+2]=Math.abs(gxVal);
+            gxImg.data[i+3]=255;
+
+            gyImg.data[i]=gyImg.data[i+1]=gyImg.data[i+2]=Math.abs(gyVal);
+            gyImg.data[i+3]=255;
+
+            fImg.data[i]=fImg.data[i+1]=fImg.data[i+2]=mag;
+            fImg.data[i+3]=255;
+        }
+    }
+
+    gxCtx.putImageData(gxImg,0,0);
+    gyCtx.putImageData(gyImg,0,0);
+    fCtx.putImageData(fImg,0,0);
+}
+
+download.onclick = () => {
+    const a = document.createElement('a');
+    a.href = final.toDataURL();
+    a.download = 'output.png';
+    a.click();
+};
+</script>
+
+</body>
+</html>
