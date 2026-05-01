@@ -73,7 +73,10 @@ sobel-edge-detection/
 
 ## 📸 Demo
 
-(Add screenshots here)
+<p align="center">
+  <img src="asset/project_ui.png" width="45%" />
+  <img src="asset/project_working.png" width="45%" />
+</p>
 
 ---
 
